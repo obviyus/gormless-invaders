@@ -241,6 +241,7 @@
 	      this.game.draw(this.ctx);
 	      this.addLivesText(this.ctx);
 	      this.addScoreText(this.ctx);
+	      this.addLevelText(this.ctx);
 	      this.moveDefender();
 	      this.game.moveInvaders();
 	      this.game.addUfo();
@@ -250,7 +251,7 @@
 	
 	  // Animate enemy sprites
 	  this.toggle = setInterval(() => {
-	    if (!this.isPaused) { this.game.toggleInvaders(); }
+	    if (!this.isPaused) this.game.toggleInvaders();
 	  }, 500);
 	};
 	
@@ -326,9 +327,14 @@
 	
 	GameView.prototype.addScoreText = function(ctx) {
 	  let x = this.game.DIM_X * .01, y = this.game.DIM_Y * .05;
-	  ctx.find = "20px Georgia";
+	  // ctx.find = "20px Georgia";
 	  ctx.fillText(`SCORE: ${this.game.score}`, x, y);
 	};
+	
+	GameView.prototype.addLevelText = function(ctx) {
+	  let x = this.game.DIM_X * .01, y = this.game.DIM_Y * .95;
+	  ctx.fillText(`LEVEL: ${this.game.level}`, x, y);
+	}
 	
 	GameView.prototype.bindKeyHandlers = function() {
 	  const defender = this.defender;
@@ -405,6 +411,7 @@
 	  this.defender = null;
 	  this.defenderLives = 3;
 	  this.score = 0;
+	  this.level = 1;
 	  this.invaderShips = [];
 	  this.ufo = null;
 	  this.bullets = [];
@@ -483,11 +490,12 @@
 	
 	};
 	
-	Game.prototype.addInvaderShips = function() {
-	  let invaderShipName;
-	  let invaderShipImage;
+	Game.prototype.addInvaderShips = function(level = 1) {
+	  let invaderShipName, invaderShipImage;
 	  let y = 100;
 	  let invaderIdx = 0;
+	  let vel = [0.27, 0];
+	  vel[0] += 0.05 * level;
 	
 	  for (let row = 0; row < 5; row++) {
 	    if (row < 1) {
@@ -513,7 +521,7 @@
 	          x * 35,
 	          y
 	        ],
-	        vel: [0.3, 0],
+	        vel: vel,
 	        side: 'invader'
 	      });
 	      this.invaderShips.push(invaderShip);
@@ -525,7 +533,7 @@
 	
 	Game.prototype.addShields = function() {
 	  for (let i = 0, x = .05; i < 5; i++, x += 0.2) {
-	    let shieldPosX = this.canvasSize[0] * x;
+	    let shieldPosX = this.canvasSize[0] * x + 14;
 	    let shieldPosY = this.canvasSize[1] * .8;
 	
 	    let shield = new Shield ({
@@ -632,8 +640,9 @@
 	    setTimeout(() => {
 	      if (this.invaderShips.length === 0) {
 	        this.refreshShields();
-	        this.addInvaderShips();
+	        this.level++;
 	        this.defenderLives++;
+	        this.addInvaderShips(this.level);
 	      }
 	    }, 1000);
 	  }
@@ -830,7 +839,7 @@
 	  this.hasFiveGuns = false;
 	  this.speedUp = false;
 	  this.speedUp2 = false;
-	  
+	
 	  if (this.game.defenderLives < 0) this.game.lose();
 	  this.game.gameView.pause();
 	
@@ -848,7 +857,7 @@
 	
 	Ship.prototype.death = function() {
 	  let deathSound;
-	  
+	
 	  if (this.name === 'defender') {
 	    if (!this.game.gameView.isMuted) deathSound = './sounds/defender_death.mp3';
 	    this.respawn();
@@ -877,7 +886,7 @@
 	      }
 	    }
 	  }
-	  
+	
 	  var sound = new Howl({
 	    src: [deathSound],
 	    volume: 0.5,
@@ -998,7 +1007,7 @@
 	  } else if (this.name === 'ufo') {
 	    bulletColor = "red";
 	  }
-	  
+	
 	  if (this.hasFiveGuns) {
 	    let bulletPositions = [
 	      [bulletPosX, bulletPosY],
@@ -1007,7 +1016,7 @@
 	      [bulletPosX - 14, bulletPosY + 16],
 	      [bulletPosX + 14, bulletPosY + 16]
 	    ];
-	    
+	
 	    bulletPositions.forEach(pos => {
 	      let bullet = new Bullet({
 	        id: this.game.bulletId,
@@ -1020,7 +1029,7 @@
 	        shipSide: this.side,
 	        ship: this
 	      });
-	      
+	
 	      this.game.bullets.push(bullet);
 	      this.bulletsInPlay.push(bullet);
 	      this.game.bulletId++;
@@ -1032,7 +1041,7 @@
 	      [bulletPosX - 8, bulletPosY +  8],
 	      [bulletPosX + 8, bulletPosY +  8]
 	    ];
-	    
+	
 	    bulletPositions.forEach(pos => {
 	      let bullet = new Bullet({
 	        id: this.game.bulletId,
@@ -1045,12 +1054,12 @@
 	        shipSide: this.side,
 	        ship: this
 	      });
-	      
+	
 	      this.game.bullets.push(bullet);
 	      this.bulletsInPlay.push(bullet);
 	      this.game.bulletId++;
 	    });
-	    
+	
 	  } else {
 	    let bullet = new Bullet({
 	      id: this.game.bulletId,
@@ -1078,7 +1087,7 @@
 	    } else {
 	      shootSound = './sounds/defender_gun.wav'
 	    }
-	    
+	
 	    var sound = new Howl({
 	      src: [shootSound],
 	      volume: 0.3,
@@ -1145,7 +1154,7 @@
 	
 	Ship.prototype.power = function(impulse) {
 	  if (this.speedUp) {
-	    let speed = this.speedUp2 ? 10 : 5;
+	    let speed = this.speedUp2 ? 8 : 5;
 	    if (impulse[0] < 0) {
 	      impulse[0] = -speed;
 	    } else {
@@ -1575,7 +1584,7 @@
 	  let posX = this.pos[0];
 	  let posY = this.pos[1];
 	
-	  for (let i = 1; i < 29; i++) {
+	  for (let i = 1; i < 21; i++) {
 	    let shieldPiece = new ShieldPiece ({
 	      id: i,
 	      pos: [posX, posY],
@@ -1588,11 +1597,30 @@
 	    shieldPiece.draw(ctx);
 	    this.game.shieldPieces.push(shieldPiece);
 	
-	    if (i < 14) { posX += 7; }
-	    else if (i === 14) { posY -= 7; }
-	    else if (i < 28) { posX -= 7; }
-	    else if (i === 28) { posY -= 7; }
+	    if (i < 10) { posX += 7; }
+	    else if (i === 10) { posY -= 7; }
+	    else if (i < 20) { posX -= 7; }
+	    else if (i === 20) { posY -= 7; }
 	  }
+	
+	  // for (let i = 1; i < 29; i++) {
+	  //   let shieldPiece = new ShieldPiece ({
+	  //     id: i,
+	  //     pos: [posX, posY],
+	  //     radius: this.radius,
+	  //     color: this.color,
+	  //     util: Util,
+	  //     game: this.game
+	  //   });
+	  //
+	  //   shieldPiece.draw(ctx);
+	  //   this.game.shieldPieces.push(shieldPiece);
+	  //
+	  //   if (i < 14) { posX += 7; }
+	  //   else if (i === 14) { posY -= 7; }
+	  //   else if (i < 28) { posX -= 7; }
+	  //   else if (i === 28) { posY -= 7; }
+	  // }
 	};
 	
 	module.exports = Shield;
